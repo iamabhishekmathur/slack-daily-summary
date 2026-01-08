@@ -15,12 +15,14 @@ class TestMessageFetcher:
 
     def test_get_unread_conversations(self, mock_slack_client):
         fetcher = MessageFetcher(mock_slack_client)
+        # Use realistic Slack timestamps (Unix epoch with microseconds)
+        # String comparison works correctly for these format timestamps
         conversations = [
-            {'id': 'C1', 'unread_count_display': 0, 'last_read': '100', 'latest': {'ts': '90'}}, # No unread
+            {'id': 'C1', 'unread_count_display': 0, 'last_read': '1704067200.000000', 'latest': {'ts': '1704060000.000000'}}, # No unread (last_read > latest)
             {'id': 'C2', 'unread_count_display': 5}, # Has unread via count
-            {'id': 'C3', 'unread_count_display': 0, 'last_read': '100', 'latest': {'ts': '110'}}, # Has unread via timestamp
+            {'id': 'C3', 'unread_count_display': 0, 'last_read': '1704067200.000000', 'latest': {'ts': '1704070800.000000'}}, # Has unread via timestamp (latest > last_read)
         ]
-        
+
         unread = fetcher._get_unread_conversations(conversations)
         assert len(unread) == 2
         assert unread[0]['id'] == 'C2'
