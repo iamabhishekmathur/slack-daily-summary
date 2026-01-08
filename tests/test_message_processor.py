@@ -41,7 +41,7 @@ class TestMessageProcessor:
         assert enriched['text'] == message['text']
         assert enriched['user_name'] == SAMPLE_USER['real_name']
         assert 'permalink' in enriched
-        assert 'testworkspace.slack.com' in enriched['permalink']
+        assert 'slack.com/archives/C123' in enriched['permalink']
 
     def test_enrich_message_skips_empty_text(self, processor):
         """Test that messages without text are skipped"""
@@ -120,7 +120,7 @@ class TestMessageProcessor:
 
         permalink = processor._generate_permalink(channel_id, message_ts)
 
-        assert 'testworkspace.slack.com' in permalink
+        assert 'slack.com/archives' in permalink
         assert channel_id in permalink
         assert 'p1234567890123456' in permalink
 
