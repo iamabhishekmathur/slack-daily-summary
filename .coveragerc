@@ -1,0 +1,5 @@
+[run]
+omit =
+    src/debug_messages.py
+    test_components.py
+    tests/*
