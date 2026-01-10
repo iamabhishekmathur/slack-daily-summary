@@ -2,11 +2,9 @@ name: Daily Slack Summary
 
 on:
   schedule:
-    # 9:00 AM EST = 2:00 PM UTC (standard time)
-    # 9:00 AM EDT = 1:00 PM UTC (daylight saving time)
-    # Run at both times to handle DST transitions
-    - cron: '0 13 * * *'  # 1 PM UTC (EDT)
-    - cron: '0 14 * * *'  # 2 PM UTC (EST)
+    # Run at 2 PM UTC (9 AM EST / 10 AM EDT)
+    # Single run - slightly later during DST but consistent
+    - cron: '0 14 * * *'
 
   # Allow manual triggering for testing
   workflow_dispatch:

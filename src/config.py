@@ -50,6 +50,10 @@ class Config:
     # Conversation types to fetch
     CONVERSATION_TYPES: list = ["public_channel", "private_channel", "mpim", "im"]
 
+    # Mark as read behavior
+    # Set SKIP_MARK_AS_READ=true to keep messages unread after summarizing
+    SKIP_MARK_AS_READ: bool = os.getenv("SKIP_MARK_AS_READ", "false").lower() == "true"
+
     @classmethod
     def validate(cls) -> bool:
         """Validate that all required configuration is present"""

@@ -1,11 +1,15 @@
 """Fetch unread messages from Slack"""
 
 import logging
+import time
 from typing import Dict, List, Any, Optional
 from src.slack_client import SlackClient
 from src.config import Config
 
 logger = logging.getLogger(__name__)
+
+# Default lookback period: 24 hours in seconds
+DEFAULT_LOOKBACK_SECONDS = 24 * 60 * 60
 
 
 class MessageFetcher:
@@ -74,7 +78,12 @@ class MessageFetcher:
 
     def _get_unread_conversations(self, conversations: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """
-        Filter conversations to those with unread messages
+        Filter conversations to those with unread messages.
+
+        Uses multiple detection methods:
+        1. unread_count_display > 0 (reliable for DMs)
+        2. last_read < latest.ts timestamp comparison
+        3. Fallback: check for recent activity in last 24 hours
 
         Args:
             conversations: List of conversation objects from Slack
@@ -83,19 +92,37 @@ class MessageFetcher:
             List of conversations with unread messages
         """
         unread = []
+        # Calculate timestamp for 24 hours ago as fallback
+        lookback_ts = str(time.time() - DEFAULT_LOOKBACK_SECONDS)
 
         for convo in conversations:
-            # Check unread count
+            channel_id = convo['id']
+
+            # Method 1: Check unread_count_display (works reliably for DMs)
             unread_count = convo.get('unread_count_display', 0)
+            if unread_count > 0:
+                logger.debug(f"Channel {channel_id} has {unread_count} unread (unread_count_display)")
+                unread.append(convo)
+                continue
 
-            # Also check if there are unread messages based on last_read
-            has_unread = (
-                unread_count > 0 or
-                (convo.get('last_read') and convo.get('latest') and
-                 convo['last_read'] < convo['latest'].get('ts', '0'))
-            )
+            # Method 2: Check last_read vs latest timestamp
+            last_read = convo.get('last_read')
+            latest = convo.get('latest', {})
+            latest_ts = latest.get('ts') if isinstance(latest, dict) else None
 
-            if has_unread:
+            if last_read and latest_ts:
+                if last_read < latest_ts:
+                    logger.debug(f"Channel {channel_id} has unread (last_read < latest)")
+                    unread.append(convo)
+                continue  # If we have both timestamps, trust the comparison
+
+            # Method 3: Fallback - if we don't have reliable unread info,
+            # check if there's been any activity in the last 24 hours
+            # This ensures we don't miss messages in channels where Slack
+            # doesn't provide unread counts
+            if latest_ts and latest_ts > lookback_ts:
+                # There's recent activity - include it to be safe
+                logger.debug(f"Channel {channel_id} has recent activity (within 24h)")
                 unread.append(convo)
 
         return unread
@@ -111,7 +138,11 @@ class MessageFetcher:
             Dictionary with conversation info, messages, and threads
         """
         channel_id = conversation['id']
-        last_read = conversation.get('last_read', '0')
+        # Use last_read if available, otherwise use 24-hour lookback
+        last_read = conversation.get('last_read')
+        if not last_read:
+            last_read = str(time.time() - DEFAULT_LOOKBACK_SECONDS)
+            logger.debug(f"No last_read for {channel_id}, using 24h lookback")
 
         # Fetch messages after last_read timestamp
         messages = self.client.get_conversation_history(

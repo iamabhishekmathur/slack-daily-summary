@@ -120,14 +120,18 @@ def main():
         logger.info("Step 6: Generating AI summaries...")
         summarized_conversations = summarizer.summarize_conversations(processed_conversations)
 
-        # 6. Mark messages as read
-        logger.info("Step 7: Marking messages as read...")
-        mark_results = mark_as_read_handler.mark_conversations_read(summarized_conversations)
+        # 6. Mark messages as read (unless SKIP_MARK_AS_READ is set)
+        if Config.SKIP_MARK_AS_READ:
+            logger.info("Step 7: Skipping mark as read (SKIP_MARK_AS_READ=true)")
+            mark_results = {'success': [], 'failed': []}
+        else:
+            logger.info("Step 7: Marking messages as read...")
+            mark_results = mark_as_read_handler.mark_conversations_read(summarized_conversations)
 
-        if mark_results['failed']:
-            logger.warning(f"Failed to mark {len(mark_results['failed'])} conversations as read")
-            for failed in mark_results['failed']:
-                logger.warning(f"  - {failed['channel_name']}: {failed['error']}")
+            if mark_results['failed']:
+                logger.warning(f"Failed to mark {len(mark_results['failed'])} conversations as read")
+                for failed in mark_results['failed']:
+                    logger.warning(f"  - {failed['channel_name']}: {failed['error']}")
 
         # 7. Format and send summary
         logger.info("Step 8: Sending summary DM...")

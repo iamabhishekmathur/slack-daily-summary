@@ -84,6 +84,7 @@ class SlackClient:
             try:
                 response = self.user_client.conversations_list(
                     types=types_str,
+                    exclude_archived=True,
                     limit=200,
                     cursor=cursor
                 )
